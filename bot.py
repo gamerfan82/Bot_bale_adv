@@ -3,31 +3,25 @@ import requests
 import os
 
 TOKEN = "900766790:3zB3PpKNztdoPoON6STdUjprXgEECAMHYso"
-
 BASE_URL = f"https://tapi.bale.ai/bot{TOKEN}/"
+OFFSET_FILE = "offset.json"
 
-QUEUE_FILE = "queue.json"
 
-
-def load_queue():
-    if not os.path.exists(QUEUE_FILE):
-        return []
-    with open(QUEUE_FILE, "r", encoding="utf-8") as f:
+def load_offset():
+    if not os.path.exists(OFFSET_FILE):
+        return 0
+    with open(OFFSET_FILE, "r") as f:
         return json.load(f)
 
 
-def save_queue(queue):
-    with open(QUEUE_FILE, "w", encoding="utf-8") as f:
-        json.dump(queue, f, ensure_ascii=False, indent=2)
+def save_offset(offset):
+    with open(OFFSET_FILE, "w") as f:
+        json.dump(offset, f)
 
 
-def get_updates(offset=None):
+def get_updates(offset):
     url = BASE_URL + "getUpdates"
-    params = {"timeout": 0}
-    if offset:
-        params["offset"] = offset
-
-    res = requests.get(url, params=params).json()
+    res = requests.get(url, params={"offset": offset}).json()
     return res.get("result", [])
 
 
@@ -37,37 +31,29 @@ def send_message(chat_id, text):
 
 
 def process_message(msg):
-    chat_id = msg["message"]["chat"]["id"]
-    text = msg["message"].get("text", "")
+    message = msg.get("message")
+    if not message:
+        return
 
-    # Example command:
+    chat_id = message["chat"]["id"]
+    text = message.get("text", "")
+
     if text == "/start":
-        send_message(chat_id, "سلام! ربات بعد ۲۰ دقیقه پیام‌هات رو بررسی می‌کنه.")
+        send_message(chat_id, "سلام! فقط پیام‌های جدید رو بررسی می‌کنم.")
     else:
-        send_message(chat_id, f"پیام دریافت شد:\n{text}")
+        send_message(chat_id, f"پیام جدید دریافت شد:\n{text}")
 
 
 def main():
-    queue = load_queue()
+    last_offset = load_offset()
 
-    # Fetch new updates
-    latest_update_id = None
-    if queue:
-        latest_update_id = queue[-1]["update_id"] + 1
+    updates = get_updates(last_offset + 1)
 
-    updates = get_updates(offset=latest_update_id)
-
-    # Add new updates to queue
-    if updates:
-        queue.extend(updates)
-        save_queue(queue)
-
-    # Process queued messages
-    for msg in queue:
+    for msg in updates:
         process_message(msg)
+        last_offset = msg["update_id"]
 
-    # Clear queue after processing
-    save_queue([])
+    save_offset(last_offset)
 
 
 if __name__ == "__main__":
