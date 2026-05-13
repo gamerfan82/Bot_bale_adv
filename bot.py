@@ -2,7 +2,7 @@ import json
 import requests
 import os
 
-TOKEN = os.getenv("BALE_TOKEN")
+TOKEN = "900766790:3zB3PpKNztdoPoON6STdUjprXgEECAMHYso"
 
 BASE_URL = f"https://tapi.bale.ai/bot{TOKEN}/"
 
