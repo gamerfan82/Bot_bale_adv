@@ -25,6 +25,8 @@ jobs:
         run: pip install requests
 
       - name: Run bot
+        run: pip install flask
+      - name: pyt
         run: python boo.py
 
       - name: Commit updated offset
