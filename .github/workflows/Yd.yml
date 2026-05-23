@@ -520,4 +520,7 @@ jobs:
           else
             echo "No changes to push."
           fi
+      - name: ذخیره سازی دانلود شده ها
+        run: python bot.py
+        
           
