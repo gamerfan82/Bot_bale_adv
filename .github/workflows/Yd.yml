@@ -1,35 +1,12 @@
-name: 02 - 🎬 دانلود یوتیوب
+name: Process YouTube Links
 
+# Trigger: این اکشن هر زمان که فایل youtube_links.json تغییر کرد، اجرا می‌شود
 on:
-  workflow_dispatch:
-    inputs:
-      video_urls:
-        description: '🔗 لینک ویدیو ( چند لینک با فاصله )'
-        required: true
-        type: string
-      download_subtitles:
-        description: '📝 زیرنویس ( فارسی و انگلیسی )'
-        required: false
-        default: false
-        type: boolean
-      quality:
-        description: '🎬 کیفیت و نوع'
-        required: false
-        default: 'best'
-        type: choice
-        options:
-          - best
-          - 2160
-          - 1440
-          - 1080
-          - 720
-          - 480
-          - audio
-      password:
-        description: '🔒 رمز ( اختیاری برای محافظت )'
-        required: false
-        default: ''
-        type: string
+  push:
+    branches:
+      - main # یا هر شاخه‌ای که روی آن کار می‌کنید
+    paths:
+      - 'youtube_links.json' # فقط وقتی این فایل تغییر کند، اکشن فعال می‌شود
 
 jobs:
   get-video:
@@ -112,11 +89,31 @@ jobs:
 
           pip3 install --upgrade yt-dlp
 
+
+      - name: Read and process JSON file
+        run: |
+          if [ ! -f "youtube_links.json" ]; then
+            echo "File youtube_links.json not found!"
+            exit 1
+          fi
+
+          LATEST_YOUTUBE_LINK=$(jq -r '. | last | .link' youtube_links.json)
+
+          if [ -z "$LATEST_YOUTUBE_LINK" ] || [ "$LATEST_YOUTUBE_LINK" == "null" ]; then
+            echo "No YouTube link found or file is empty/invalid."
+            exit 1
+          fi
+
+          echo "Latest YouTube link found: $LATEST_YOUTUBE_LINK"
+
+
+
+
       - name: دانلود تنظیمات
         env:
-          YT_URLS: ${{ github.event.inputs.video_urls }}
-          YT_QUALITY: ${{ github.event.inputs.quality }}
-          YT_PASSWORD: ${{ github.event.inputs.password }}
+          YT_URLS: ${{ steps.json_processor.outputs.youtube_link }}
+          YT_QUALITY: '480'
+          YT_PASSWORD: 'erfan'
           REPO_OWNER_ENV: ${{ github.repository_owner }}
           REPO_NAME_ENV: ${{ github.event.repository.name }}
           BRANCH_ENV: ${{ github.ref_name }}
