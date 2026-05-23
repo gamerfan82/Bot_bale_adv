@@ -514,6 +514,7 @@ jobs:
                 git reset --hard origin/"$BRANCH"
                 cp "$BACKUP_DIR/video.zip" ./video.zip
                 git add video.zip
+                git add offset.json
                 git diff --cached --quiet || git commit -m "Update video.zip [skip ci]"
               fi
             done
