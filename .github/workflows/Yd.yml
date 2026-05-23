@@ -14,7 +14,6 @@ jobs:
     timeout-minutes: 180
     permissions:
       contents: write
-
     steps:
       - name: بررسی اولیه
         uses: actions/checkout@v4
@@ -22,7 +21,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
       
-       - name: Set up Python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
