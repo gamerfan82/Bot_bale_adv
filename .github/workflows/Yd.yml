@@ -33,8 +33,9 @@ jobs:
       
       - name: Run Python script
         id: run_script 
-        run: python botbale.py
-
+        run: |
+           python botbale.py
+           cp offset.json /tmp/offset.json
       - name: Check script output status
         if: steps.run_script.outputs.link == 'false'
         run: |
@@ -485,43 +486,37 @@ jobs:
           BRANCH="${GITHUB_REF_NAME}"
           BACKUP_DIR=$(cat /tmp/backup_dir_path.txt)
 
-          if [ ! -f "$BACKUP_DIR/video.zip" ]; then
-            echo "No video.zip to push. Exiting."
-            exit 0
-          fi
-
-          # گرفتن آخرین نسخه از مخزن
+          # دریافت آخرین وضعیت مخزن
           git fetch origin "$BRANCH"
           git reset --hard origin/"$BRANCH"
 
-          # کپی video.zip به ریشه (جایگزین فایل قبلی)
+          # کپی فایل‌ها به workspace
           cp "$BACKUP_DIR/video.zip" ./video.zip
+          cp /tmp/offset.json ./offset.json
 
-          # اضافه کردن و commit
-          git add video.zip
+          # آماده‌سازی commit
+          git add video.zip offset.json
+
           if ! git diff --cached --quiet; then
-            git commit -m "Update video.zip [skip ci]"
+            git commit -m "Update video.zip and offset.json [skip ci]"
             PUSH_RETRY=0
             while [ $PUSH_RETRY -lt 10 ]; do
               PUSH_RETRY=$((PUSH_RETRY + 1))
               if timeout 300 git push origin HEAD:"$BRANCH"; then
-                echo "Push successful!"
+                echo "Push موفقیت‌آمیز بود!"
                 break
               else
-                echo "Push failed, retry $PUSH_RETRY/10..."
+                echo "Push شکست خورد، تلاش مجدد $PUSH_RETRY/10..."
                 sleep 5
                 git fetch origin "$BRANCH"
                 git reset --hard origin/"$BRANCH"
+                # کپی دوباره فایل‌ها (چون reset آنها را حذف کرده)
                 cp "$BACKUP_DIR/video.zip" ./video.zip
-                git add video.zip
-                git add offset.json
-                git diff --cached --quiet || git commit -m "Update video.zip [skip ci]"
+                cp /tmp/offset.json ./offset.json
+                git add video.zip offset.json
+                git diff --cached --quiet || git commit -m "Update video.zip and offset.json [skip ci]"
               fi
             done
           else
-            echo "No changes to push."
+            echo "هیچ تغییری برای commit وجود ندارد."
           fi
-      - name: ذخیره سازی دانلود شده ها
-        run: python bot.py
-        
-          
