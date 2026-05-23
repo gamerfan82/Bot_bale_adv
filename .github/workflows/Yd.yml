@@ -491,7 +491,7 @@ jobs:
             echo "Processing URL $URL_INDEX / $TOTAL_URLS : $URL"
             echo "============================================================"
 
-            TMP_DIR = 'test'
+            TMP_DIR = "test"
             mkdir -p "$TMP_DIR"
 
             echo "Checking available formats..."
