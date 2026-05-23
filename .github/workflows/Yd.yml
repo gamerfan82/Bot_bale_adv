@@ -1,13 +1,6 @@
-name: Process YouTube Links
-
-# Trigger: این اکشن هر زمان که فایل youtube_links.json تغییر کرد، اجرا می‌شود
 on:
-  push:
-    branches:
-      - main # یا هر شاخه‌ای که روی آن کار می‌کنید
-    paths:
-      - 'youtube_links.json' # فقط وقتی این فایل تغییر کند، اکشن فعال می‌شود
-
+  schedule:
+    - cron: '*/20 * * * *'   # هر ۲۰ دقیقه اجرا می‌شود
 jobs:
   get-video:
     runs-on: ubuntu-latest
