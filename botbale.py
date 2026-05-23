@@ -80,6 +80,10 @@ def process_message(update):
         send_message(chat_id, "سلام! فقط پیام‌های جدید رو بررسی می‌کنم.")
     elif is_youtube_link(text):
         print(f"link={text}")
+        output_file = os.getenv('GITHUB_OUTPUT')
+        if output_file:
+           with open(output_file, 'a') as fh:
+               print(f"link={text}", file=fh)
         save_youtube_link(text, chat_id=chat_id)
         send_message(chat_id, "✅ لینک یوتیوب دریافت و در سرور ذخیره شد.")
     else:
