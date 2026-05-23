@@ -6,7 +6,7 @@ import json
 
 BOT_TOKEN = "900766790:3zB3PpKNztdoPoON6STdUjprXgEECAMHYso"
 
-FILE_PATH = "test.jpg"
+FILE_PATH = "video.zip"
 
 DATA_FILE = "youtube_links.json"
 
