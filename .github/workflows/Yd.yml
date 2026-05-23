@@ -21,7 +21,26 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
+      
+       - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+        
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+      
+      - name: Run Python script
+        id: run_script 
+        run: python botbale.py
 
+      - name: Check script output status
+        if: steps.run_script.outputs.link == 'false'
+        run: |
+          echo "Python script processed unsuccessfully!"
+          exit 1
       - name: آماده سازی گیت برای فایلهای بزرگ
         run: |
           git config --global http.postBuffer 524288000
@@ -89,29 +108,9 @@ jobs:
 
           pip3 install --upgrade yt-dlp
 
-
-      - name: Read and process JSON file
-        run: |
-          if [ ! -f "youtube_links.json" ]; then
-            echo "File youtube_links.json not found!"
-            exit 1
-          fi
-
-          LATEST_YOUTUBE_LINK=$(jq -r '. | last | .link' youtube_links.json)
-
-          if [ -z "$LATEST_YOUTUBE_LINK" ] || [ "$LATEST_YOUTUBE_LINK" == "null" ]; then
-            echo "No YouTube link found or file is empty/invalid."
-            exit 1
-          fi
-
-          echo "Latest YouTube link found: $LATEST_YOUTUBE_LINK"
-
-
-
-
       - name: دانلود تنظیمات
         env:
-          YT_URLS: "$LATEST_YOUTUBE_LINK"
+          YT_URLS: ${{steps.run_script.outputs.link}}
           YT_QUALITY: '480'
           YT_PASSWORD: 'erfan'
           REPO_OWNER_ENV: ${{ github.repository_owner }}
@@ -1076,3 +1075,5 @@ jobs:
           echo "=========================================="
           echo "All files pushed successfully!"
           echo "=========================================="
+      - name: Run Python upload
+        run: python bot.py
