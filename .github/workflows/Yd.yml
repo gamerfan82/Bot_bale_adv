@@ -111,7 +111,7 @@ jobs:
 
       - name: دانلود تنظیمات
         env:
-          YT_URLS: ${{ steps.json_processor.outputs.youtube_link }}
+          YT_URLS: $LATEST_YOUTUBE_LINK
           YT_QUALITY: '480'
           YT_PASSWORD: 'erfan'
           REPO_OWNER_ENV: ${{ github.repository_owner }}
@@ -1036,7 +1036,7 @@ jobs:
               NUM=$((NUM + 1))
               RANDOM_EMOJI="${VIDEO_EMOJIS[$RANDOM % ${#VIDEO_EMOJIS[@]}]}"
               FOLDER_ENCODED=$(urlencode "$FOLDER_NAME")
-              FOLDER_LINK="https://github.com/${REPO_OWNER}/${REPO_NAME}/tree/${BRANCH}/videos/${FOLDER_ENCODED}"
+              FOLDER_LINK="https://github.com/${REPO_OWNER}/${REPO_NAME}/tree/${BRANCH}/videos"
               printf -- "- %s - %s [%s](%s)\n" "$NUM" "$RANDOM_EMOJI" "$FOLDER_NAME" "$FOLDER_LINK" >> "$MASTER_README"
             done
           }
