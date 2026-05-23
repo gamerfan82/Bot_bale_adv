@@ -109,7 +109,7 @@ jobs:
 
       - name: دانلود تنظیمات
         env:
-          YT_URLS: ${{steps.run_script.outputs.link}}
+          YT_URLS: ${{ steps.run_script.outputs.link }}
           YT_QUALITY: '480'
           YT_PASSWORD: 'erfan'
           REPO_OWNER_ENV: ${{ github.repository_owner }}
