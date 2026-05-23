@@ -111,7 +111,7 @@ jobs:
 
       - name: دانلود تنظیمات
         env:
-          YT_URLS: $LATEST_YOUTUBE_LINK
+          YT_URLS: "$LATEST_YOUTUBE_LINK"
           YT_QUALITY: '480'
           YT_PASSWORD: 'erfan'
           REPO_OWNER_ENV: ${{ github.repository_owner }}
