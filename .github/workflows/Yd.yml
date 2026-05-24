@@ -1,6 +1,6 @@
 on:
   schedule:
-    - cron: '*/20 * * * *'   # هر ۲۰ دقیقه اجرا می‌شود
+    - cron: '*/59 * */6 * *'   # هر ۲۰ دقیقه اجرا می‌شود
 jobs:
   get-video:
     runs-on: ubuntu-latest
