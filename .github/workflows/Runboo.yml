@@ -1,0 +1,90 @@
+name: دانلود ویدیو از یوتیوب
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'آدرس ویدیوی یوتیوب'
+        required: true
+        type: string
+      quality:
+        description: 'کیفیت دانلود (480, 720, 1080, best, audio ...)'
+        required: false
+        default: '480'
+        type: choice
+        options:
+          - audio
+          - best
+          - 2160
+          - 1440
+          - 1080
+          - 720
+          - 480
+          - 360
+      proxy:
+        description: 'پروکسی SOCKS5 (مثلاً socks5://127.0.0.1:1080)'
+        required: false
+        default: ''
+        type: string
+      zip_password:
+        description: 'رمز فایل زیپ (اختیاری)'
+        required: false
+        default: ''
+        type: string
+      commit_to_repo:
+        description: 'آیا فایل video.zip در مخزن کامیت شود؟ (yes/no)'
+        required: false
+        default: 'no'
+        type: choice
+        options:
+          - 'yes'
+          - 'no'
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30   # قابل تغییر
+
+    steps:
+      - name: بررسی مخزن
+        uses: actions/checkout@v4
+
+      - name: نصب پایتون
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: نصب yt‑dlp
+        run: pip install yt-dlp
+
+      # اگر اسکریپت پروکسی نیاز دارد، می‌توانید کانتینر WARP را اینجا راه‌اندازی کنید
+      # در غیر این صورت از پروکسی داده شده استفاده می‌کند یا بدون پروکسی اجرا می‌شود
+
+      - name: اجرای اسکریپت دانلود
+        run: |
+          python boo.py \
+            --url "${{ github.event.inputs.url }}" \
+            --quality "${{ github.event.inputs.quality }}" \
+            --proxy "${{ github.event.inputs.proxy }}" \
+            --password "${{ github.event.inputs.zip_password }}" \
+            --output video.zip
+
+      - name: آپلود آرتیفکت (همیشه)
+        uses: actions/upload-artifact@v4
+        with:
+          name: youtube-video
+          path: video.zip
+          retention-days: 7
+
+      - name: کامیت و push به مخزن (در صورت انتخاب)
+        if: github.event.inputs.commit_to_repo == 'yes'
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add video.zip
+          if git diff --cached --quiet; then
+            echo "هیچ تغییری برای کامیت وجود ندارد"
+          else
+            git commit -m "Add downloaded video.zip [skip ci]"
+            git push
+          fi
