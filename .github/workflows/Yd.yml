@@ -29,11 +29,24 @@ jobs:
         run: |
            python botbale.py
            cp offset.json /tmp/offset.json
-      - name: Check script output status
-        if: steps.run_script.outputs.link == 'false'
+
+
+
+      - name: Set download condition
         run: |
-          echo "Python script processed unsuccessfully!"
-          exit 1
+          if [ "${{ steps.run_script.outputs.link }}" = "false" ]; then
+            echo "DOWNLOAD_VIDEO=false" >> $GITHUB_ENV
+          else
+            echo "DOWNLOAD_VIDEO=true" >> $GITHUB_ENV
+          fi
+
+      # مراحل مربوط به دانلود ویدیو (فقط در صورت نیاز)
+      - name: شروع کانتینر WARP
+        if: env.DOWNLOAD_VIDEO == 'false'
+        run: |
+           echo "not run _______"
+           exit 1
+
       - name: آماده سازی گیت برای فایلهای بزرگ
         run: |
           git config --global http.postBuffer 524288000
