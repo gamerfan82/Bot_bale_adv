@@ -1,4 +1,4 @@
-name: دانلود ویدیو از یوتیوب
+name: دانلود ویدیو از یوتیوب (کامل)
 
 on:
   workflow_dispatch:
@@ -6,85 +6,104 @@ on:
       url:
         description: 'آدرس ویدیوی یوتیوب'
         required: true
-        type: string
       quality:
-        description: 'کیفیت دانلود (480, 720, 1080, best, audio ...)'
+        description: 'کیفیت (audio/best/480/720/1080...)'
         required: false
         default: '480'
         type: choice
-        options:
-          - audio
-          - best
-          - 2160
-          - 1440
-          - 1080
-          - 720
-          - 480
-          - 360
-      proxy:
-        description: 'پروکسی SOCKS5 (مثلاً socks5://127.0.0.1:1080)'
-        required: false
-        default: ''
-        type: string
+        options: [audio, best, 2160, 1440, 1080, 720, 480, 360]
       zip_password:
-        description: 'رمز فایل زیپ (اختیاری)'
+        description: 'رمز فایل zip (اختیاری)'
         required: false
         default: ''
-        type: string
-      commit_to_repo:
-        description: 'آیا فایل video.zip در مخزن کامیت شود؟ (yes/no)'
+      commit:
+        description: 'کامیت در مخزن؟'
         required: false
         default: 'no'
         type: choice
-        options:
-          - 'yes'
-          - 'no'
+        options: ['yes', 'no']
 
 jobs:
   download:
     runs-on: ubuntu-latest
-    timeout-minutes: 30   # قابل تغییر
+    timeout-minutes: 30
 
     steps:
-      - name: بررسی مخزن
+      - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
-      - name: نصب پایتون
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
 
-      - name: نصب yt‑dlp
-        run: pip install yt-dlp
-
-      # اگر اسکریپت پروکسی نیاز دارد، می‌توانید کانتینر WARP را اینجا راه‌اندازی کنید
-      # در غیر این صورت از پروکسی داده شده استفاده می‌کند یا بدون پروکسی اجرا می‌شود
-
-      - name: اجرای اسکریپت دانلود
+      - name: Install yt-dlp and requests
         run: |
-          python boo.py \
-            --url "${{ github.event.inputs.url }}" \
-            --quality "${{ github.event.inputs.quality }}" \
-            --proxy "${{ github.event.inputs.proxy }}" \
-            --password "${{ github.event.inputs.zip_password }}" \
-            --output video.zip
+          pip install yt-dlp requests
 
-      - name: آپلود آرتیفکت (همیشه)
+      - name: Install Deno (required for yt-dlp JS challenges)
+        run: |
+          curl -fsSL https://deno.land/install.sh | sh
+          echo "$HOME/.deno/bin" >> $GITHUB_PATH
+          deno --version
+
+      - name: Start Cloudflare WARP container (SOCKS5 proxy)
+        run: |
+          docker network create warp-net || true
+          docker run -d \
+            --name warp \
+            --restart=always \
+            --network warp-net \
+            -p 1080:1080 \
+            --cap-add NET_ADMIN \
+            --sysctl net.ipv6.conf.all.disable_ipv6=0 \
+            --sysctl net.ipv4.conf.all.src_valid_mark=1 \
+            -v warp-data:/var/lib/cloudflare-warp \
+            caomingjun/warp
+
+          echo "Waiting for WARP (up to 30s)..."
+          for i in {1..10}; do
+            sleep 3
+            if curl -s --max-time 5 --socks5-hostname 127.0.0.1:1080 https://cloudflare.com/cdn-cgi/trace 2>/dev/null | grep -qE "warp=(on|plus)"; then
+              echo "WARP is ready"
+              break
+            fi
+          done
+
+      - name: Run download script
+        env:
+          YT_URL: ${{ github.event.inputs.url }}
+          YT_QUALITY: ${{ github.event.inputs.quality }}
+          YT_PASSWORD: ${{ github.event.inputs.zip_password }}
+        run: |
+          python youtube_downloader.py \
+            --url "$YT_URL" \
+            --quality "$YT_QUALITY" \
+            --proxy socks5://127.0.0.1:1080 \
+            --password "$YT_PASSWORD" \
+            --output video.zip 2>&1 | tee download.log
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: youtube-video
-          path: video.zip
+          path: |
+            video.zip
+            download.log
           retention-days: 7
 
-      - name: کامیت و push به مخزن (در صورت انتخاب)
-        if: github.event.inputs.commit_to_repo == 'yes'
+      - name: Commit to repo (optional)
+        if: github.event.inputs.commit == 'yes'
         run: |
           git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
+          git config user.email "actions@github.com"
           git add video.zip
           if git diff --cached --quiet; then
-            echo "هیچ تغییری برای کامیت وجود ندارد"
+            echo "No changes"
           else
-            git commit -m "Add downloaded video.zip [skip ci]"
+            git commit -m "Add video.zip [skip ci]"
             git push
           fi
