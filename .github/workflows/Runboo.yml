@@ -41,14 +41,16 @@ jobs:
           python-version: '3.x'
 
       - name: Install yt-dlp and requests
-        run: |
-          pip install yt-dlp requests
+        run: pip install yt-dlp requests
 
-      - name: Install Deno (required for yt-dlp JS challenges)
+      - name: Install Deno (JS runtime for yt-dlp)
         run: |
           curl -fsSL https://deno.land/install.sh | sh
-          echo "$HOME/.deno/bin" >> $GITHUB_PATH
-          deno --version
+          # اضافه کردن هم برای مرحله فعلی و هم برای مراحل بعدی
+          export DENO_INSTALL="$HOME/.deno"
+          export PATH="$DENO_INSTALL/bin:$PATH"
+          echo "$DENO_INSTALL/bin" >> $GITHUB_PATH
+          deno --version   # حالا کار می‌کند
 
       - name: Start Cloudflare WARP container (SOCKS5 proxy)
         run: |
@@ -79,7 +81,7 @@ jobs:
           YT_QUALITY: ${{ github.event.inputs.quality }}
           YT_PASSWORD: ${{ github.event.inputs.zip_password }}
         run: |
-          python youtube_downloader.py \
+          python boo.py \
             --url "$YT_URL" \
             --quality "$YT_QUALITY" \
             --proxy socks5://127.0.0.1:1080 \
