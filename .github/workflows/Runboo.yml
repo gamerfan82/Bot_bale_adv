@@ -40,6 +40,13 @@ jobs:
         with:
           python-version: '3.x'
 
+          
+      # مرحله جدید: نصب وابستگی‌های سیستمی (ffmpeg و غیره)
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg zip p7zip-full curl jq bc unzip
+
       - name: Install yt-dlp and requests
         run: pip install yt-dlp requests
 
