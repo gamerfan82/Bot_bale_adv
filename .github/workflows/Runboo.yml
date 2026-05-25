@@ -81,12 +81,7 @@ jobs:
           YT_QUALITY: ${{ github.event.inputs.quality }}
           YT_PASSWORD: ${{ github.event.inputs.zip_password }}
         run: |
-          python boo.py \
-            --url "$YT_URL" \
-            --quality "$YT_QUALITY" \
-            --proxy socks5://127.0.0.1:1080 \
-            --password "$YT_PASSWORD" \
-            --output video.zip 2>&1 | tee download.log
+          python boo.py
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -94,18 +89,17 @@ jobs:
           name: youtube-video
           path: |
             video.zip
-            download.log
+            offset.json
           retention-days: 7
 
       - name: Commit to repo (optional)
-        if: github.event.inputs.commit == 'yes'
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add video.zip
+          git add offset.json
           if git diff --cached --quiet; then
             echo "No changes"
           else
-            git commit -m "Add video.zip [skip ci]"
+            git commit -m "Add offset [skip ci]"
             git push
           fi
