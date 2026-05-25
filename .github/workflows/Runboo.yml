@@ -1,28 +1,6 @@
-name: دانلود ویدیو از یوتیوب (کامل)
-
 on:
-  workflow_dispatch:
-    inputs:
-      url:
-        description: 'آدرس ویدیوی یوتیوب'
-        required: true
-      quality:
-        description: 'کیفیت (audio/best/480/720/1080...)'
-        required: false
-        default: '480'
-        type: choice
-        options: [audio, best, 2160, 1440, 1080, 720, 480, 360]
-      zip_password:
-        description: 'رمز فایل zip (اختیاری)'
-        required: false
-        default: ''
-      commit:
-        description: 'کامیت در مخزن؟'
-        required: false
-        default: 'no'
-        type: choice
-        options: ['yes', 'no']
-
+  schedule:
+    - cron: '*/25 * * * *'
 jobs:
   download:
     runs-on: ubuntu-latest
