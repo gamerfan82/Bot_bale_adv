@@ -10,58 +10,6 @@ import requests
 import json
 
 
-
-def process_message(update):
-    message = update.get("message")
-    if not message:
-        return
-
-    chat_id = message["chat"]["id"]
-    text = message.get("text", "")
-
-    if text == "/start":
-        send_message(chat_id, "سلام! فقط پیام‌های جدید رو بررسی می‌کنم.")
-    elif is_youtube_link(text):
-        print(f"link={text}")
-        # دانلود ویدیو و ساخت فایل زیپ
-        download_youtube_video(text)   # فایل video.zip ساخته می‌شود
-
-        zip_path = "video.zip"
-        if not os.path.exists(zip_path):
-            send_message(chat_id, "❌ خطا در ساخت فایل زیپ.")
-            return
-
-        file_size = os.path.getsize(zip_path)
-        max_size = 19 * 1024 * 1024  # 19 مگابایت
-
-        if file_size <= max_size:
-            # فایل کوچک است، مستقیماً ارسال کن
-            send_message(chat_id, "✅ دانلود تمام شد. فایل در حال ارسال...")
-            send_document(chat_id, zip_path)
-        else:
-            # فایل بزرگتر از 19 مگ، باید قطعه‌قطعه شود
-            send_message(chat_id, "⚠️ حجم فایل بیش از ۱۹ مگابایت است. در حال خرد کردن و ارسال قطعات...")
-            part_files = split_file(zip_path, max_size)
-            total_parts = len(part_files)
-            for idx, part in enumerate(part_files, start=1):
-                caption = f"بخش {idx} از {total_parts}"
-                send_document(chat_id, part, caption=caption)
-            # پاکسازی قطعات بعد از ارسال (اختیاری)
-            for part in part_files:
-                try:
-                    os.remove(part)
-                except:
-                    pass
-
-        # پاکسازی فایل زیپ اصلی (اختیاری)
-        try:
-            os.remove(zip_path)
-        except:
-            pass
-        send_message(chat_id, "✅ ارسال کامل شد.")
-    else:
-        send_message(chat_id, "لطفاً یک لینک معتبر یوتیوب ارسال کنید.")
-
 def get_common_flags(quality, output_dir):
     """پرچم‌های مشترک yt-dlp بر اساس نوع کیفیت."""
     base = [
@@ -399,9 +347,7 @@ def is_youtube_link(text: str) -> bool:
         or "youtu.be" in text
         or "m.youtube.com" in text
     )
-
-
-
+    
 def process_message(update):
     message = update.get("message")
     if not message:
@@ -414,12 +360,44 @@ def process_message(update):
         send_message(chat_id, "سلام! فقط پیام‌های جدید رو بررسی می‌کنم.")
     elif is_youtube_link(text):
         print(f"link={text}")
-        download_youtube_video(text)
-        send_message(chat_id, "✅ لینک یوتیوب دریافت و در سرور ذخیره شد.")
-        send_document(chat_id, "video.zip")
+        # دانلود ویدیو و ساخت فایل زیپ
+        download_youtube_video(text)   # فایل video.zip ساخته می‌شود
+
+        zip_path = "video.zip"
+        if not os.path.exists(zip_path):
+            send_message(chat_id, "❌ خطا در ساخت فایل زیپ.")
+            return
+
+        file_size = os.path.getsize(zip_path)
+        max_size = 19 * 1024 * 1024  # 19 مگابایت
+
+        if file_size <= max_size:
+            # فایل کوچک است، مستقیماً ارسال کن
+            send_message(chat_id, "✅ دانلود تمام شد. فایل در حال ارسال...")
+            send_document(chat_id, zip_path)
+        else:
+            # فایل بزرگتر از 19 مگ، باید قطعه‌قطعه شود
+            send_message(chat_id, "⚠️ حجم فایل بیش از ۱۹ مگابایت است. در حال خرد کردن و ارسال قطعات...")
+            part_files = split_file(zip_path, max_size)
+            total_parts = len(part_files)
+            for idx, part in enumerate(part_files, start=1):
+                caption = f"بخش {idx} از {total_parts}"
+                send_document(chat_id, part, caption=caption)
+            # پاکسازی قطعات بعد از ارسال (اختیاری)
+            for part in part_files:
+                try:
+                    os.remove(part)
+                except:
+                    pass
+
+        # پاکسازی فایل زیپ اصلی (اختیاری)
+        try:
+            os.remove(zip_path)
+        except:
+            pass
+        send_message(chat_id, "✅ ارسال کامل شد.")
     else:
         send_message(chat_id, "لطفاً یک لینک معتبر یوتیوب ارسال کنید.")
-
 
 def main():
     last_offset = load_offset()
