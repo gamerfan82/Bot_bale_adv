@@ -61,21 +61,8 @@ jobs:
           done
 
       - name: Run download script
-        env:
-          YT_URL: ${{ github.event.inputs.url }}
-          YT_QUALITY: ${{ github.event.inputs.quality }}
-          YT_PASSWORD: ${{ github.event.inputs.zip_password }}
         run: |
           python boo.py
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: youtube-video
-          path: |
-            video.zip
-            offset.json
-          retention-days: 7
 
       - name: Commit to repo (optional)
         run: |
