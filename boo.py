@@ -11,6 +11,56 @@ import json
 
 
 
+def process_message(update):
+    message = update.get("message")
+    if not message:
+        return
+
+    chat_id = message["chat"]["id"]
+    text = message.get("text", "")
+
+    if text == "/start":
+        send_message(chat_id, "سلام! فقط پیام‌های جدید رو بررسی می‌کنم.")
+    elif is_youtube_link(text):
+        print(f"link={text}")
+        # دانلود ویدیو و ساخت فایل زیپ
+        download_youtube_video(text)   # فایل video.zip ساخته می‌شود
+
+        zip_path = "video.zip"
+        if not os.path.exists(zip_path):
+            send_message(chat_id, "❌ خطا در ساخت فایل زیپ.")
+            return
+
+        file_size = os.path.getsize(zip_path)
+        max_size = 19 * 1024 * 1024  # 19 مگابایت
+
+        if file_size <= max_size:
+            # فایل کوچک است، مستقیماً ارسال کن
+            send_message(chat_id, "✅ دانلود تمام شد. فایل در حال ارسال...")
+            send_document(chat_id, zip_path)
+        else:
+            # فایل بزرگتر از 19 مگ، باید قطعه‌قطعه شود
+            send_message(chat_id, "⚠️ حجم فایل بیش از ۱۹ مگابایت است. در حال خرد کردن و ارسال قطعات...")
+            part_files = split_file(zip_path, max_size)
+            total_parts = len(part_files)
+            for idx, part in enumerate(part_files, start=1):
+                caption = f"بخش {idx} از {total_parts}"
+                send_document(chat_id, part, caption=caption)
+            # پاکسازی قطعات بعد از ارسال (اختیاری)
+            for part in part_files:
+                try:
+                    os.remove(part)
+                except:
+                    pass
+
+        # پاکسازی فایل زیپ اصلی (اختیاری)
+        try:
+            os.remove(zip_path)
+        except:
+            pass
+        send_message(chat_id, "✅ ارسال کامل شد.")
+    else:
+        send_message(chat_id, "لطفاً یک لینک معتبر یوتیوب ارسال کنید.")
 
 def get_common_flags(quality, output_dir):
     """پرچم‌های مشترک yt-dlp بر اساس نوع کیفیت."""
@@ -274,40 +324,46 @@ BASE_URL = f"https://tapi.bale.ai/bot{TOKEN}/"
 OFFSET_FILE = "offset.json"
 DATA_FILE = "youtube_links.json"
 
-def send_document(chat_id, file_path):
+# ---------- توابع کمکی ----------
+def split_file(file_path, chunk_size=19*1024*1024):
+    """
+    فایل را به قطعات chunk_size بایتی تقسیم کرده و لیست نام فایل‌های قطعه را برمی‌گرداند.
+    """
+    part_files = []
+    base_name = file_path
+    with open(file_path, 'rb') as f:
+        part_num = 1
+        while True:
+            chunk = f.read(chunk_size)
+            if not chunk:
+                break
+            part_name = f"{base_name}.part{part_num}"
+            with open(part_name, 'wb') as part_file:
+                part_file.write(chunk)
+            part_files.append(part_name)
+            part_num += 1
+    return part_files
 
+def send_document(chat_id, file_path, caption=None):
     try:
-
         with open(file_path, 'rb') as f:
-
             files = {'document': (file_path.split('/')[-1], f)}
-
-            payload = {
-
-                "chat_id": chat_id,
-
-                # "caption": "فایل zip شما"
-
-            }
-
+            payload = {"chat_id": chat_id}
+            if caption:
+                payload["caption"] = caption
             response = requests.post(f"{BASE_URL}sendDocument", data=payload, files=files, timeout=30)
-
             response.raise_for_status()
-
             print(f"فایل '{file_path}' به {chat_id} ارسال شد.")
-
     except FileNotFoundError:
-
         print(f"خطا: فایل در مسیر '{file_path}' پیدا نشد.")
-
     except requests.exceptions.RequestException as e:
-
         print(f"خطا در ارسال فایل به {chat_id}: {e}")
-
     except Exception as e:
-
         print(f"خطای ناشناخته در send_document: {e}")
 
+# سایر توابع بدون تغییر (get_common_flags, get_format_string, download_method_*, ...)
+
+# در تابع process_message، بخش پس از دانلود را به‌روز کنید:
 
 def load_offset():
     if not os.path.exists(OFFSET_FILE):
