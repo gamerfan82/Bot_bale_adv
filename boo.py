@@ -290,7 +290,7 @@ def send_document(chat_id, file_path):
 
             }
 
-            response = requests.post(f"{BASE_URL}/sendDocument", data=payload, files=files, timeout=30)
+            response = requests.post(f"{BASE_URL}sendDocument", data=payload, files=files, timeout=30)
 
             response.raise_for_status()
 
