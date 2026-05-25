@@ -1,5 +1,4 @@
 
-import argparse
 import subprocess
 import tempfile
 import os
@@ -7,10 +6,12 @@ import sys
 import zipfile
 from pathlib import Path
 import shutil
+import requests
+import json
 
-# ----------------------------------------------------------------------
-# تنظیمات مشترک yt-dlp برای هر نوع کیفیت
-# ----------------------------------------------------------------------
+
+
+
 def get_common_flags(quality, output_dir):
     """پرچم‌های مشترک yt-dlp بر اساس نوع کیفیت."""
     base = [
@@ -265,42 +266,152 @@ def download_youtube_video(url, quality="480", proxy="socks5://127.0.0.1:1080", 
     print("[+] Temporary files cleaned up.")
 
 
+#------------------------------------------------------------------
+# bot bale
+
+TOKEN = "900766790:3zB3PpKNztdoPoON6STdUjprXgEECAMHYso"
+BASE_URL = f"https://tapi.bale.ai/bot{TOKEN}/"
+OFFSET_FILE = "offset.json"
+DATA_FILE = "youtube_links.json"
+
+def send_document(chat_id, file_path):
+
+    try:
+
+        with open(file_path, 'rb') as f:
+
+            files = {'document': (file_path.split('/')[-1], f)}
+
+            payload = {
+
+                "chat_id": chat_id,
+
+                # "caption": "فایل zip شما"
+
+            }
+
+            response = requests.post(f"{BASE_URL}/sendDocument", data=payload, files=files, timeout=30)
+
+            response.raise_for_status()
+
+            print(f"فایل '{file_path}' به {chat_id} ارسال شد.")
+
+    except FileNotFoundError:
+
+        print(f"خطا: فایل در مسیر '{file_path}' پیدا نشد.")
+
+    except requests.exceptions.RequestException as e:
+
+        print(f"خطا در ارسال فایل به {chat_id}: {e}")
+
+    except Exception as e:
+
+        print(f"خطای ناشناخته در send_document: {e}")
+
+
+def load_offset():
+    if not os.path.exists(OFFSET_FILE):
+        return 0
+    with open(OFFSET_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save_offset(offset):
+    with open(OFFSET_FILE, "w", encoding="utf-8") as f:
+        json.dump(offset, f)
+
+
+def get_updates(offset):
+    url = BASE_URL + "getUpdates"
+    params = {"offset": offset, "timeout": 0}
+    res = requests.get(url, params=params).json()
+    return res.get("result", [])
+
+
+def send_message(chat_id, text):
+    url = BASE_URL + "sendMessage"
+    requests.post(url, json={"chat_id": chat_id, "text": text})
+
+
+
+def is_youtube_link(text: str) -> bool:
+    if not text:
+        return False
+    text = text.lower().strip()
+    return (
+        "youtube.com" in text
+        or "youtu.be" in text
+        or "m.youtube.com" in text
+    )
+
+
+
+def process_message(update):
+    message = update.get("message")
+    if not message:
+        return
+
+    chat_id = message["chat"]["id"]
+    text = message.get("text", "")
+
+    if text == "/start":
+        send_message(chat_id, "سلام! فقط پیام‌های جدید رو بررسی می‌کنم.")
+    elif is_youtube_link(text):
+        print(f"link={text}")
+        download_youtube_video(text)
+        send_message(chat_id, "✅ لینک یوتیوب دریافت و در سرور ذخیره شد.")
+        send_document(chat_id, "video.zip")
+    else:
+        send_message(chat_id, "لطفاً یک لینک معتبر یوتیوب ارسال کنید.")
+
+
+def main():
+    last_offset = load_offset()
+    updates = get_updates(last_offset + 1)
+
+    for update in updates:
+        process_message(update)
+        last_offset = update["update_id"]
+
+    save_offset(last_offset)
+
+
 # ----------------------------------------------------------------------
 # رابط خط فرمان
 # ----------------------------------------------------------------------
-def main():
-    parser = argparse.ArgumentParser(
-        description="دانلود ویدیو از یوتیوب با روش‌های متعدد (مشابه workflow گیت‌هاب)."
-    )
-    parser.add_argument("--url", required=True, help="آدرس ویدیوی یوتیوب")
-    parser.add_argument(
-        "--quality", default="480",
-        choices=["audio", "best", "2160", "1440", "1080", "720", "480", "360"],
-        help="کیفیت دانلود (پیش‌فرض: 480)"
-    )
-    parser.add_argument(
-        "--proxy", default="socks5://127.0.0.1:1080",
-        help="پروکسی SOCKS5 (پیش‌فرض: socks5://127.0.0.1:1080)"
-    )
-    parser.add_argument("--password", help="رمز فایل زیپ (اختیاری)")
-    parser.add_argument(
-        "--output", default="video.zip",
-        help="مسیر فایل زیپ خروجی (پیش‌فرض: video.zip)"
-    )
-    args = parser.parse_args()
+# def main():
+#     parser = argparse.ArgumentParser(
+#         description="دانلود ویدیو از یوتیوب با روش‌های متعدد (مشابه workflow گیت‌هاب)."
+#     )
+#     parser.add_argument("--url", required=True, help="آدرس ویدیوی یوتیوب")
+#     parser.add_argument(
+#         "--quality", default="480",
+#         choices=["audio", "best", "2160", "1440", "1080", "720", "480", "360"],
+#         help="کیفیت دانلود (پیش‌فرض: 480)"
+#     )
+#     parser.add_argument(
+#         "--proxy", default="socks5://127.0.0.1:1080",
+#         help="پروکسی SOCKS5 (پیش‌فرض: socks5://127.0.0.1:1080)"
+#     )
+#     parser.add_argument("--password", help="رمز فایل زیپ (اختیاری)")
+#     parser.add_argument(
+#         "--output", default="video.zip",
+#         help="مسیر فایل زیپ خروجی (پیش‌فرض: video.zip)"
+#     )
+#     args = parser.parse_args()
 
-    # بررسی وجود yt-dlp
-    if shutil.which("yt-dlp") is None:
-        print("[✗] yt-dlp پیدا نشد. لطفاً آن را نصب کنید: pip install yt-dlp")
-        sys.exit(1)
+#     # بررسی وجود yt-dlp
+#     if shutil.which("yt-dlp") is None:
+#         print("[✗] yt-dlp پیدا نشد. لطفاً آن را نصب کنید: pip install yt-dlp")
+#         sys.exit(1)
 
-    download_youtube_video(
-        url=args.url,
-        quality=args.quality,
-        proxy=args.proxy,
-        zip_password=args.password,
-        output_zip=args.output
-    )
+#     download_youtube_video(
+#         url=args.url,
+#         quality=args.quality,
+#         proxy=args.proxy,
+#         zip_password=args.password,
+#         output_zip=args.output
+#     )
 
 
 if __name__ == "__main__":
