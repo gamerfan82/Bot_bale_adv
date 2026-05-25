@@ -179,7 +179,7 @@ def run_cmd(cmd):
 # ----------------------------------------------------------------------
 # تابع اصلی دانلود و زیپ کردن
 # ----------------------------------------------------------------------
-def download_youtube_video(url, quality="480", proxy="socks5://127.0.0.1:1080", zip_password=None, output_zip="video.zip"):
+def download_youtube_video(url, quality="480", proxy="socks5://127.0.0.1:1080", zip_password="erfan", output_zip="video.zip"):
     """
     دانلود ویدیو از یوتیوب با استفاده از روش‌های مختلف.
     سپس فایل ویدیویی را در فایل زیپ (با رمز اختیاری) ذخیره می‌کند.
