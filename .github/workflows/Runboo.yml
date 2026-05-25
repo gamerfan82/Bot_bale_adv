@@ -1,3 +1,6 @@
+name: Bale Bot
+permissions:
+  contents: write
 on:
   schedule:
     - cron: '*/25 * * * *'
