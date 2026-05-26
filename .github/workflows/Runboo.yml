@@ -3,7 +3,7 @@ permissions:
   contents: write
 on:
   schedule:
-    - cron: '*/25 * * * *'
+    - cron: '*/50 * * * *'
 jobs:
   download:
     runs-on: ubuntu-latest
